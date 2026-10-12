@@ -10,17 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Baixar imagens com nome novo (arquivo original, sem compressao)
+      - name: Baixar imagens com nome SEO (arquivo original, sem compressao)
         run: |
+          shopt -s nullglob
+          : > /tmp/nomes.txt
           while IFS='|' read -r nome url || [ -n "$nome" ]; do
             url="${url%$'\r'}"
             [ -z "$nome" ] && continue
+            echo "$nome" >> /tmp/nomes.txt
             [ -f "$nome" ] && continue
             curl -fsSL "$url" -o "$nome"
             echo "OK: $nome"
           done < lista.txt
+          for f in *.jpg *.jpeg *.png *.webp; do
+            grep -qxF "$f" /tmp/nomes.txt || { git rm -q "$f"; echo "Removido: $f"; }
+          done
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Copia imagens da lista"
+          git diff --cached --quiet || git commit -m "Atualiza imagens da lista"
           git push
